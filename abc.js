@@ -224,7 +224,7 @@ function redirectUser() {
     if (allowedHosts.includes(domain)) {
       window.history.back();
     } else {
-      window.location.href = "https://grouvex.github.io";
+      window.location.href = "https://grouvex.github.io/beta/";
     }
   } catch (e) {
     console.error("Error al procesar la URL anterior:", e);
@@ -523,7 +523,7 @@ function eliminarCuentaUsuario(user) {
         switch (error.code) {
             case 'auth/requires-recent-login':
                 alert('Por motivos de seguridad, debes volver a iniciar sesión para eliminar tu cuenta.');
-                window.location.href = "https://grouvex.github.io/login"; 
+                window.location.href = "https://grouvex.github.io/beta/login"; 
                 break;
             default:
                 alert('Error al eliminar la cuenta de usuario: ' + error.message);
