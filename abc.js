@@ -228,7 +228,7 @@ function redirectUser() {
     }
   } catch (e) {
     console.error("Error al procesar la URL anterior:", e);
-    window.location.href = "https://grouvex.github.io";
+    window.location.href = "https://grouvex.github.io/beta/";
   }
 }
 
@@ -263,7 +263,7 @@ function mostrarnewsAdv() {
         <h1 style="color: black"><span class="insignia vvadmin"></span> | Nuevos ToS y PP</h1>
         <div style="margin-top: 10px; display: flex; justify-content: center; gap: 10px;flex-wrap: wrap;flex-direction: column;align-content: center;">
         <p>Para mejorar la seguridad de los usuarios, así como el del equipo, se han modificado los Términos de Servicio (ToS) y la Política de Privacidad (PP)</p>
-        <p><a href="https://grouvex.github.io/tos" style="color: white; text-decoration: underline;">ToS</a> | <a href="https://grouvex.github.io/pp" style="color: white; text-decoration: underline;">PP</a></p>
+        <p><a href="https://grouvex.github.io/beta/tos" style="color: white; text-decoration: underline;">ToS</a> | <a href="https://grouvex.github.io/beta/pp" style="color: white; text-decoration: underline;">PP</a></p>
         <button onclick="this.parentElement.parentElement.remove()" style="background: none; color: red; cursor: pointer;">Cerrar</button>
         </div>
      `;
@@ -283,11 +283,11 @@ function mostrarnewsAdv() {
         if (mantenimientoActivo) {
             if (paginaActual !== paginaMantenimiento && !(user && uidsTeam.includes(user.uid))) {
                 alert(`🚧 La Página está en mantenimiento, se te refirigirá a ${paginaMantenimiento}.`);
-              setTimeout(() => {window.location.href = `https://grouvex.github.io/${paginaMantenimiento}`;}, 3000);
+              setTimeout(() => {window.location.href = `https://grouvex.github.io/beta/${paginaMantenimiento}`;}, 3000);
                 return;
             }
         } else if (paginaActual === paginaMantenimiento) {
-            window.location.href = "https://grouvex.github.io";
+            window.location.href = "https://grouvex.github.io/beta/";
             return;
         }
 
@@ -322,7 +322,7 @@ function mostrarnewsAdv() {
                 alert(`⛔ Requieres ser ${equipoRequerido}. Redirigiendo a Equipo → Insignias...`);
                 mostrarNotificacion(`⛔ Requieres ser ${equipoRequerido}. Redirigiendo a Equipo → Insignias...`);
                 setTimeout(() => {
-                    window.location.href = "https://grouvex.github.io/equipo#insignias";
+                    window.location.href = "https://grouvex.github.io/beta/equipo#insignias";
                 }, 5000);
                 return;
             }
@@ -383,7 +383,7 @@ function mostrarNotificacionRegistro() {
     notificacion.innerHTML = `
         <p>🎁 ¡Regístrate Gratis para acceder a contenido exclusivo!</p>
         <div style="margin-top: 10px; display: flex; justify-content: center; gap: 10px;">
-            <a href="https://grouvex.github.io/login" style="color: white; text-decoration: underline;">Registrarme</a>
+            <a href="https://grouvex.github.io/beta/login" style="color: white; text-decoration: underline;">Registrarme</a>
             <button onclick="this.parentElement.parentElement.remove()" 
                     style="background: none; border: none; color: white; cursor: pointer;">
                 Cerrar
