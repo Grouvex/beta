@@ -49,14 +49,14 @@
     <script src="time.js"></script><script type="module" src="abc.js"></script><script src="index.js"></script>
 </head>
 <body>
-    <header>
+    <mainTop>
         <a href="https://grouvex.github.io/"><div class="img-container"></div></a> 
         <span style="font-family: Times New Roman;color:white;box-shadow: 0 0 10px gold;width:100%">
             <span id="menuG"></span> <!-- General -->
             <span id="menuT"></span> <!-- Temas/Idioma -->
             <span id="menuU"></span> <!-- Usuario -->
         </span>
-    </header>
+    </mainTop>
     <main>
         <h1>Autenticación de Usuarios en Grouvex Studios</h1>
         <div id="auth-container">
@@ -94,7 +94,16 @@
             <button id="resetPasswordBtn">Cambiar Contraseña</button><button id="logoutBtn">Cerrar Sesión</button>
             <hr>
             <button id="deleteBtn">Eliminar Cuenta</button>
-        </div>
+        <!-- En tu perfil.html -->
+<div class="profile-stats">
+    <p>Seguidores: <span id="followersCount">0</span></p>
+    <p>Siguiendo: <span id="followingCount">0</span></p>
+    <button id="followButton" style="display: none;">Seguir</button>
+</div>
+
+<!-- En tu lista de usuarios -->
+<div id="usersContainer" class="users-list"></div>
+</div>
     </main>
     <!-- Footer -->
     <div id="footer"></div>
