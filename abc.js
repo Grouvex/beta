@@ -24,29 +24,128 @@ const database = getDatabase(app);
 
 console.log("Firebase inicializado correctamente");
 
-// Verificar si el usuario está autenticado
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log("Usuario autenticado:", user.email);
-    checkAccess(user.uid);
-
-    const authContainer = document.getElementById('auth-container');
-    const content = document.getElementById('content');
-    const correoElectronico = document.getElementById('correoElectronico');
-    const usuario = document.getElementById('usuario');
-    const userID = document.getElementById('userID');
-    const fotoPerfil = document.getElementById('fotoPerfil');
-
-    if (authContainer && content) {
-      authContainer.style.display = 'none';
-      content.style.display = 'block';
-      correoElectronico.textContent = user.email || 'Correo no definido';
-      usuario.textContent = user.displayName || 'Usuario no definido';
-      userID.textContent = 'GS-' + user.uid;
-      mostrarUsuarioYInsignias(user.displayName, document.querySelectorAll('.insignias'));
-      fotoPerfil.src = user.photoURL || 'ruta/a/imagen/por/defecto.png';
+// Función para seguir a un usuario
+async function followUser(currentUserId, targetUserId) {
+    try {
+        // Añadir a los seguidores del usuario objetivo
+        await set(ref(database, `followers/${targetUserId}/${currentUserId}`), true);
+        // Añadir a los seguidos por el usuario actual
+        await set(ref(database, `following/${currentUserId}/${targetUserId}`), true);
+        console.log(`Usuario ${currentUserId} sigue ahora a ${targetUserId}`);
+    } catch (error) {
+        console.error("Error al seguir usuario:", error);
+        throw error;
     }
-  } else {
+}
+
+// Función para dejar de seguir a un usuario
+async function unfollowUser(currentUserId, targetUserId) {
+    try {
+        // Eliminar de los seguidores del usuario objetivo
+        await remove(ref(database, `followers/${targetUserId}/${currentUserId}`));
+        // Eliminar de los seguidos por el usuario actual
+        await remove(ref(database, `following/${currentUserId}/${targetUserId}`));
+        console.log(`Usuario ${currentUserId} ha dejado de seguir a ${targetUserId}`);
+    } catch (error) {
+        console.error("Error al dejar de seguir usuario:", error);
+        throw error;
+    }
+}
+
+// Función para obtener estadísticas de seguimiento
+async function getFollowStats(userId) {
+    try {
+        const followersSnapshot = await get(ref(database, `followers/${userId}`));
+        const followingSnapshot = await get(ref(database, `following/${userId}`));
+        
+        return {
+            followersCount: followersSnapshot.exists() ? Object.keys(followersSnapshot.val()).length : 0,
+            followingCount: followingSnapshot.exists() ? Object.keys(followingSnapshot.val()).length : 0
+        };
+    } catch (error) {
+        console.error("Error obteniendo estadísticas:", error);
+        throw error;
+    }
+}
+
+// Función para verificar si el usuario actual sigue a otro usuario
+async function checkIfFollowing(currentUserId, targetUserId) {
+    try {
+        const snapshot = await get(ref(database, `following/${currentUserId}/${targetUserId}`));
+        return snapshot.exists();
+    } catch (error) {
+        console.error("Error verificando seguimiento:", error);
+        throw error;
+    }
+}
+
+// Modifica el onAuthStateChanged para manejar perfiles
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        console.log("Usuario autenticado:", user.email);
+        checkAccess(user.uid);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewedUserId = urlParams.get('userId');
+        
+        // Determinar si estamos viendo nuestro propio perfil o otro
+        const isViewingOwnProfile = !viewedUserId || viewedUserId === user.uid;
+        const targetUserId = isViewingOwnProfile ? user.uid : viewedUserId;
+
+        // Obtener datos del usuario objetivo
+        const targetUser = isViewingOwnProfile ? user : await getUserData(targetUserId);
+
+        // Actualizar la UI
+        const authContainer = document.getElementById('auth-container');
+        const content = document.getElementById('content');
+        const correoElectronico = document.getElementById('correoElectronico');
+        const usuario = document.getElementById('usuario');
+        const userID = document.getElementById('userID');
+        const fotoPerfil = document.getElementById('fotoPerfil');
+        const followButton = document.getElementById('followButton');
+        const followersCount = document.getElementById('followersCount');
+        const followingCount = document.getElementById('followingCount');
+
+        if (authContainer && content) {
+            authContainer.style.display = 'none';
+            content.style.display = 'block';
+            
+            // Mostrar datos del usuario
+            correoElectronico.textContent = targetUser.email || 'Correo no definido';
+            usuario.textContent = targetUser.displayName || 'Usuario no definido';
+            userID.textContent = 'GS-' + targetUser.uid;
+            fotoPerfil.src = targetUser.photoURL || 'ruta/a/imagen/por/defecto.png';
+
+            // Mostrar estadísticas de seguimiento
+            const stats = await getFollowStats(targetUser.uid);
+            followersCount.textContent = stats.followersCount;
+            followingCount.textContent = stats.followingCount;
+
+            // Configurar botón de seguir
+            if (!isViewingOwnProfile) {
+                const isFollowing = await checkIfFollowing(user.uid, targetUser.uid);
+                followButton.style.display = 'block';
+                followButton.textContent = isFollowing ? 'Dejar de seguir' : 'Seguir';
+                followButton.onclick = async () => {
+                    try {
+                        if (isFollowing) {
+                            await unfollowUser(user.uid, targetUser.uid);
+                            followButton.textContent = 'Seguir';
+                            followersCount.textContent = parseInt(followersCount.textContent) - 1;
+                        } else {
+                            await followUser(user.uid, targetUser.uid);
+                            followButton.textContent = 'Dejar de seguir';
+                            followersCount.textContent = parseInt(followersCount.textContent) + 1;
+                        }
+                    } catch (error) {
+                        alert('Error al actualizar seguimiento: ' + error.message);
+                    }
+                };
+            } else {
+                followButton.style.display = 'none';
+            }
+        }
+    } else {
     console.log("Usuario no autenticado");
     const authContainer = document.getElementById('auth-container');
     const content = document.getElementById('content');
@@ -55,7 +154,7 @@ onAuthStateChanged(auth, (user) => {
       authContainer.style.display = 'block';
       content.style.display = 'none';
     }
-  }
+    }
 });
 
 function inicializarFormularioDeAutenticacion() {
@@ -224,11 +323,11 @@ function redirectUser() {
     if (allowedHosts.includes(domain)) {
       window.history.back();
     } else {
-      window.location.href = "https://grouvex.github.io/beta/";
+      window.location.href = "https://grouvex.github.io";
     }
   } catch (e) {
     console.error("Error al procesar la URL anterior:", e);
-    window.location.href = "https://grouvex.github.io/beta/";
+    window.location.href = "https://grouvex.github.io";
   }
 }
 
@@ -238,9 +337,92 @@ function checkAccess(uid) {
   // Lógica para verificar el acceso del usuario
 }
 
+// Función para obtener datos de un usuario específico
+async function getUserData(userId) {
+    try {
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+            return {
+                uid: userId,
+                email: userDoc.data().email,
+                displayName: userDoc.data().displayName,
+                photoURL: userDoc.data().photoURL
+            };
+        }
+        throw new Error('Usuario no encontrado');
+    } catch (error) {
+        console.error("Error obteniendo datos del usuario:", error);
+        throw error;
+    }
+}
 
+// Función para mostrar lista de usuarios
+async function mostrarUsuarios() {
+    const usersContainer = document.getElementById('usersContainer');
+    if (!usersContainer) return;
+
+    try {
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        usersContainer.innerHTML = '';
+        
+        usersSnapshot.forEach(async (doc) => {
+            const user = doc.data();
+            if (user.uid === auth.currentUser?.uid) return;
+
+            const userElement = document.createElement('div');
+            userElement.className = 'user-card';
+            userElement.innerHTML = `
+                <img src="${user.photoURL || 'ruta/a/imagen/por/defecto.png'}" class="user-avatar">
+                <h3>${user.displayName}</h3>
+                <p>Seguidores: <span id="followersCount-${user.uid}">0</span></p>
+                <button class="follow-btn" data-userid="${user.uid}">Seguir</button>
+            `;
+            
+            // Actualizar estadísticas en tiempo real
+            const stats = await getFollowStats(user.uid);
+            userElement.querySelector(`#followersCount-${user.uid}`).textContent = stats.followersCount;
+
+            usersContainer.appendChild(userElement);
+        });
+
+        // Manejar clics en botones de seguir
+        usersContainer.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('follow-btn')) {
+                const targetUserId = e.target.dataset.userid;
+                const currentUser = auth.currentUser;
+                
+                if (!currentUser) {
+                    alert('Debes iniciar sesión para seguir usuarios');
+                    return;
+                }
+
+                try {
+                    const isFollowing = await checkIfFollowing(currentUser.uid, targetUserId);
+                    
+                    if (isFollowing) {
+                        await unfollowUser(currentUser.uid, targetUserId);
+                        e.target.textContent = 'Seguir';
+                    } else {
+                        await followUser(currentUser.uid, targetUserId);
+                        e.target.textContent = 'Dejar de seguir';
+                    }
+                    
+                    // Actualizar contador en tiempo real
+                    const stats = await getFollowStats(targetUserId);
+                    document.querySelector(`#followersCount-${targetUserId}`).textContent = stats.followersCount;
+                } catch (error) {
+                    alert('Error al actualizar seguimiento: ' + error.message);
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error cargando usuarios:", error);
+    }
+}
+
+// Añadir al DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function() {
-if (true){
+    if (false){
 function mostrarnewsAdv() {
     const newsAdv = document.createElement("div");
     newsAdv.style = `
@@ -263,7 +445,7 @@ function mostrarnewsAdv() {
         <h1 style="color: black"><span class="insignia vvadmin"></span> | Nuevos ToS y PP</h1>
         <div style="margin-top: 10px; display: flex; justify-content: center; gap: 10px;flex-wrap: wrap;flex-direction: column;align-content: center;">
         <p>Para mejorar la seguridad de los usuarios, así como el del equipo, se han modificado los Términos de Servicio (ToS) y la Política de Privacidad (PP)</p>
-        <p><a href="https://grouvex.github.io/beta/tos" style="color: white; text-decoration: underline;">ToS</a> | <a href="https://grouvex.github.io/beta/pp" style="color: white; text-decoration: underline;">PP</a></p>
+        <p><a href="https://grouvex.github.io/tos" style="color: white; text-decoration: underline;">ToS</a> | <a href="https://grouvex.github.io/pp" style="color: white; text-decoration: underline;">PP</a></p>
         <button onclick="this.parentElement.parentElement.remove()" style="background: none; color: red; cursor: pointer;">Cerrar</button>
         </div>
      `;
@@ -283,11 +465,11 @@ function mostrarnewsAdv() {
         if (mantenimientoActivo) {
             if (paginaActual !== paginaMantenimiento && !(user && uidsTeam.includes(user.uid))) {
                 alert(`🚧 La Página está en mantenimiento, se te refirigirá a ${paginaMantenimiento}.`);
-              setTimeout(() => {window.location.href = `https://grouvex.github.io/beta/${paginaMantenimiento}`;}, 3000);
+              setTimeout(() => {window.location.href = `https://grouvex.github.io/${paginaMantenimiento}`;}, 3000);
                 return;
             }
         } else if (paginaActual === paginaMantenimiento) {
-            window.location.href = "https://grouvex.github.io/beta/";
+            window.location.href = "https://grouvex.github.io";
             return;
         }
 
@@ -322,7 +504,7 @@ function mostrarnewsAdv() {
                 alert(`⛔ Requieres ser ${equipoRequerido}. Redirigiendo a Equipo → Insignias...`);
                 mostrarNotificacion(`⛔ Requieres ser ${equipoRequerido}. Redirigiendo a Equipo → Insignias...`);
                 setTimeout(() => {
-                    window.location.href = "https://grouvex.github.io/beta/equipo#insignias";
+                    window.location.href = "https://grouvex.github.io/equipo#insignias";
                 }, 5000);
                 return;
             }
@@ -383,7 +565,7 @@ function mostrarNotificacionRegistro() {
     notificacion.innerHTML = `
         <p>🎁 ¡Regístrate Gratis para acceder a contenido exclusivo!</p>
         <div style="margin-top: 10px; display: flex; justify-content: center; gap: 10px;">
-            <a href="https://grouvex.github.io/beta/login" style="color: white; text-decoration: underline;">Registrarme</a>
+            <a href="https://grouvex.github.io/login" style="color: white; text-decoration: underline;">Registrarme</a>
             <button onclick="this.parentElement.parentElement.remove()" 
                     style="background: none; border: none; color: white; cursor: pointer;">
                 Cerrar
@@ -523,7 +705,7 @@ function eliminarCuentaUsuario(user) {
         switch (error.code) {
             case 'auth/requires-recent-login':
                 alert('Por motivos de seguridad, debes volver a iniciar sesión para eliminar tu cuenta.');
-                window.location.href = "https://grouvex.github.io/beta/login"; 
+                window.location.href = "https://grouvex.github.io/login"; 
                 break;
             default:
                 alert('Error al eliminar la cuenta de usuario: ' + error.message);
@@ -583,4 +765,16 @@ if (deleteBtn) {
         }
     });
 }
+    
+    // Mostrar lista de usuarios
+    mostrarUsuarios();
+    
+    // Navegación entre perfiles
+    document.querySelectorAll('.view-profile').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const userId = e.target.dataset.userid;
+            window.location.href = `login?userId=${userId}`;
+        });
+    });
 });
